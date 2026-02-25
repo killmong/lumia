@@ -45,7 +45,7 @@ export default function PortfolioView({ videos, setPlayingVideo }: { videos: Vid
           width: isHoveringVideo ? 80 : 20,
           height: isHoveringVideo ? 80 : 20,
           opacity: isHoveringVideo ? 0.2 : 1,
-          x: "-50%", y: "-50%" // Center offset
+          x: "-50%", y: "-50%" 
         }}
         transition={{ type: "tween", ease: "backOut", duration: 0.15 }}
       />
@@ -57,7 +57,7 @@ export default function PortfolioView({ videos, setPlayingVideo }: { videos: Vid
           x: mousePos.x,
           y: mousePos.y,
           opacity: isHoveringVideo ? 1 : 0,
-          x: "-50%", y: "-50%"
+          // x: "-50%", y: "-50%"
         }}
       >
         Play
