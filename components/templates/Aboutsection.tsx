@@ -6,6 +6,9 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { usePortfolioStore } from "@/store/usePortfolioStore";
 import { GitHubCalendar } from "react-github-calendar";
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import {
   Terminal,
   User,
@@ -21,13 +24,38 @@ if (typeof window !== "undefined") {
 
 export default function AboutSection() {
   const sectionRef = useRef<HTMLElement>(null);
+
   const { userData, aiConfig } = usePortfolioStore();
+  type Video = {
+    id: string;
+    thumbnail: string;
+    title: string;
+  };
+
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const template = aiConfig?.templateName || "bold";
+
   const primaryColor = aiConfig?.primaryColor || "#3b82f6";
   const bgColor =
     aiConfig?.backgroundColor === "#171717" ? "#1a1a1a" : "#020617"; // A slightly contrasting background
 
+  useEffect(() => {
+    // Only trigger fetch if we have an ID and we are in Creator mode
+    const channelId = userData.integrations.youtubeChannelId;
+
+    if (template === "creator" && channelId) {
+      setLoading(true);
+      fetch(`/api/youtube?channelId=${channelId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data.error) setVideos(data);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    }
+  }, [template, userData.integrations.youtubeChannelId]);
   useGSAP(() => {
     // Reset animations on theme change
     gsap.killTweensOf(".about-animate");
@@ -132,13 +160,19 @@ export default function AboutSection() {
               className="flex flex-col md:flex-row justify-between items-end border-b-2 pb-6"
               style={{ borderColor: "rgba(255,255,255,0.1)" }}
             >
-              <h2 className="about-animate text-5xl md:text-7xl font-black uppercase text-white tracking-tighter">
-                Behind The <span style={{ color: primaryColor }}>Lens.</span>
-              </h2>
+              <div className="flex flex-col gap-2">
+                <h2 className="about-animate text-5xl md:text-7xl font-black uppercase text-white tracking-tighter">
+                  Behind The <span style={{ color: primaryColor }}>Lens.</span>
+                </h2>
+                <p className="about-animate text-gray-500 font-mono text-sm tracking-widest uppercase">
+                  {userData.integrations.youtubeChannelId ||
+                    "Channel Not Connected"}
+                </p>
+              </div>
 
               {userData.integrations.youtubeChannelId && (
                 <a
-                  href={`https://youtube.com/${userData.integrations.youtubeChannelId.startsWith("@") ? "" : "@"}${userData.integrations.youtubeChannelId.replace("@", "")}`}
+                  href={`https://youtube.com/${userData.integrations.youtubeChannelId.startsWith("UC") ? `channel/${userData.integrations.youtubeChannelId}` : userData.integrations.youtubeChannelId}`}
                   target="_blank"
                   rel="noreferrer"
                   className="about-animate flex items-center gap-2 px-8 py-4 rounded-full text-white font-black tracking-widest uppercase hover:scale-105 transition-transform mt-6 md:mt-0 shadow-[0_0_30px_rgba(255,0,0,0.3)]"
@@ -149,8 +183,8 @@ export default function AboutSection() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-16 items-center">
-              {/* Creator Bio */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-16 items-start">
+              {/* LEFT COLUMN: Creator Bio */}
               <div className="about-animate text-xl md:text-3xl font-medium text-gray-300 leading-relaxed">
                 <p
                   className="border-l-4 pl-6"
@@ -163,7 +197,7 @@ export default function AboutSection() {
                   {userData.skills.map((skill, i) => (
                     <span
                       key={i}
-                      className="px-5 py-2 rounded-full bg-white/10 text-white font-bold tracking-wider text-sm backdrop-blur-md"
+                      className="px-5 py-2 rounded-full bg-white/10 text-white font-bold tracking-wider text-sm backdrop-blur-md border border-white/5"
                     >
                       {skill}
                     </span>
@@ -171,34 +205,75 @@ export default function AboutSection() {
                 </div>
               </div>
 
-              {/* Latest Drop / Video Player UI */}
-              <div className="about-animate flex flex-col gap-6">
+              {/* RIGHT COLUMN: Dynamic Video Grid */}
+              <div className="about-animate flex flex-col gap-6 w-full">
                 <h3 className="text-2xl font-black text-white uppercase tracking-widest flex items-center gap-3">
-                  <PlayCircle size={28} style={{ color: primaryColor }} />{" "}
-                  Latest Drop
+                  <PlayCircle size={28} style={{ color: primaryColor }} />
+                  Latest Content
                 </h3>
 
-                {/* Simulated Video Player */}
-                <div
-                  className="w-full aspect-video rounded-3xl overflow-hidden border-2 shadow-2xl relative group cursor-pointer bg-black flex items-center justify-center"
-                  style={{ borderColor: primaryColor }}
-                >
-                  {/* Dark Overlay that fades on hover */}
-                  <div className="absolute inset-0 bg-black/60 group-hover:bg-black/20 transition-colors duration-500 z-10 flex items-center justify-center">
-                    {/* Play Button */}
-                    <div className="w-24 h-24 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-500 shadow-2xl">
-                      <Play
-                        size={48}
-                        className="text-white ml-2"
-                        fill="white"
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {loading ? (
+                    // Skeleton Loaders while fetching
+                    [1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className="w-full aspect-video bg-white/5 animate-pulse rounded-2xl border border-white/5"
                       />
-                    </div>
-                  </div>
+                    ))
+                  ) : videos.length > 0 ? (
+                    videos.map((video) => (
+                      <Link
+                        key={video.id}
+                        href={`https://youtube.com/watch?v=${video.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 hover:border-red-500/50 transition-all duration-500 shadow-xl"
+                      >
+                        <Image
+                          width={400}
+                          height={225}
+                          src={video.thumbnail}
+                          alt={video.title}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
 
-                  {/* You can replace this gradient with an actual <img> thumbnail later! */}
-                  <div className="w-full h-full bg-linear-to-br from-gray-900 via-black to-gray-800 flex items-center justify-center text-gray-600 font-bold uppercase tracking-widest">
-                    [ Fetching Latest YouTube Video... ]
-                  </div>
+                        <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
+
+                        {/* Play Icon on Hover */}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                          <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
+                            <Play
+                              size={20}
+                              fill="white"
+                              className="text-white ml-1"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Video Title */}
+                        <div className="absolute bottom-3 left-3 pr-3 z-10">
+                          <p className="text-white text-[10px] md:text-xs font-bold line-clamp-2 leading-tight uppercase tracking-tight group-hover:text-red-500 transition-colors">
+                            {video.title}
+                          </p>
+                        </div>
+                      </Link>
+                    ))
+                  ) : (
+                    /* Fallback if no videos are found */
+                    <div className="col-span-full py-20 border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center text-center px-6">
+                      <Youtube size={48} className="text-gray-700 mb-4" />
+                      <p className="text-gray-500 italic text-sm">
+                        No live videos found.
+                        <br />
+                        Check your{" "}
+                        <span className="text-white font-mono">
+                          Channel ID
+                        </span>{" "}
+                        in the editor settings.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

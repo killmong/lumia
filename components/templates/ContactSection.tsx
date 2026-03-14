@@ -267,7 +267,7 @@ export default function ContactSection() {
 
       {/* Background Decorative Blur */}
       <div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-[800px] h-[800px] rounded-full mix-blend-screen filter blur-[150px] opacity-20 pointer-events-none"
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-200 h-200 rounded-full mix-blend-screen filter blur-[150px] opacity-20 pointer-events-none"
         style={{ backgroundColor: primaryColor }}
       ></div>
     </section>

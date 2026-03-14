@@ -1,20 +1,19 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
-// 1. Define the shape of the user's input
+// 1. Interfaces
 export interface Project {
   title: string;
   description: string;
   githubUrl?: string;
   liveUrl?: string;
-  deepContent?: string; // For adding full case studies later
+  deepContent?: string;
 }
 
 export interface SocialLinks {
   github?: string;
   linkedin?: string;
-  twitter?: string;
   youtube?: string;
-  instagram?: string;
 }
 
 export interface Integrations {
@@ -26,82 +25,102 @@ export interface UserData {
   name: string;
   role: string;
   bio: string;
-  aboutText: string; // The deep dive details about the developer
+  aboutText: string;
   skills: string[];
   projects: Project[];
   socialLinks: SocialLinks;
-  integrations: Integrations; // Used to fetch 3rd party API data
+  integrations: Integrations;
   contactEmail: string;
   contactMessage: string;
+  resumeUrl: string;
 }
 
-// 2. Define the shape of the AI's output
 export interface AiConfig {
-  templateName: "minimal" | "bold" | "developer" | "creator"; // Added 'creator' theme
+  templateName: "minimal" | "bold" | "developer" | "creator";
   primaryColor: string;
   backgroundColor: string;
   fontPairing: string;
   narrativeFlow: "chronological" | "skill-first" | "project-heavy";
 }
 
-// 3. Define the store's state and actions
+export interface CursorSettings {
+  shape: "circle" | "ring" | "square";
+  colorOverride: string; // If empty, it uses the AI theme color
+}
+
+// 2. State Definition
 interface PortfolioState {
   userData: UserData;
   aiConfig: AiConfig | null;
+  cursorSettings: CursorSettings;
   isGenerating: boolean;
+  hasCompletedOnboarding: boolean;
 
   setUserData: (data: Partial<UserData>) => void;
   setAiConfig: (config: AiConfig) => void;
+  setCursorSettings: (settings: Partial<CursorSettings>) => void;
+  setHasCompletedOnboarding: (status: boolean) => void;
   setIsGenerating: (status: boolean) => void;
-  resetStore: () => void;
+  resetStore: () => void; // Clears everything back to zero
 }
 
-// 4. Initial mock data ready for the new sections
-const defaultUserData: UserData = {
-  name: "Gourav Sharma",
-  role: "Full Stack Developer & Content Creator",
-  bio: "I build high-performance, interactive web applications with a focus on seamless user experiences and modern UI.",
-  aboutText:
-    "Currently pursuing my B.Tech in CSE. When I'm not debugging MERN stack apps, building fintech dashboards like Folio, or animating with GSAP, I'm likely playing Kabaddi, editing vlogs, or exploring new tech.",
-  skills: ["Next.js", "GSAP", "Tailwind CSS", "MERN Stack", "Premiere Pro"],
-  projects: [
-    {
-      title: "Folio",
-      description:
-        "A modern, interactive fintech dashboard built with Next.js and Framer Motion.",
-      deepContent: "Built to handle complex financial data visualization...",
-    },
-    {
-      title: "ByteStore",
-      description: "A scalable cloud storage platform.",
-      deepContent: "Architected using a scalable backend...",
-    },
-  ],
-  socialLinks: {
-    github: "https://github.com/killmong",
-    youtube: "https://youtube.com/@GOuravSharmaVLogD",
-  },
-  integrations: {
-    githubUsername: "killmong", // We will feed this into react-github-calendar
-    youtubeChannelId: "GOuravSharmaVLogD", // We will use this for fetching top content
-  },
-  contactEmail: "hello@example.com",
-  contactMessage:
-    "Currently open for software engineering roles or creative collaborations. Let's build something great.",
+// 3. The BLANK Default State (No hardcoded data)
+const emptyUserData: UserData = {
+  name: "",
+  role: "",
+  bio: "",
+  aboutText: "",
+  skills: [],
+  projects: [],
+  socialLinks: {},
+  integrations: {},
+  contactEmail: "",
+  contactMessage: "",
+  resumeUrl: "",
 };
 
-// 5. Create the actual store
-export const usePortfolioStore = create<PortfolioState>((set) => ({
-  userData: defaultUserData,
-  aiConfig: null,
-  isGenerating: false,
+// 4. Create the Persisted Store
+export const usePortfolioStore = create<PortfolioState>()(
+  persist(
+    (set) => ({
+      userData: emptyUserData,
+      aiConfig: null,
+      cursorSettings: { shape: "circle", colorOverride: "" },
+      isGenerating: false,
+      hasCompletedOnboarding: false,
 
-  setUserData: (data) =>
-    set((state) => ({
-      userData: { ...state.userData, ...data },
-    })),
-  setAiConfig: (config) => set({ aiConfig: config }),
-  setIsGenerating: (status) => set({ isGenerating: status }),
-  resetStore: () =>
-    set({ userData: defaultUserData, aiConfig: null, isGenerating: false }),
-}));
+      setUserData: (data) =>
+        set((state) => ({
+          userData: { ...state.userData, ...data },
+        })),
+      setAiConfig: (config) => set({ aiConfig: config }),
+      setCursorSettings: (settings) =>
+        set((state) => ({
+          cursorSettings: { ...state.cursorSettings, ...settings },
+        })),
+      setHasCompletedOnboarding: (status) =>
+        set({ hasCompletedOnboarding: status }),
+      setIsGenerating: (status) => set({ isGenerating: status }),
+
+      // Reset wipes the state AND clears the local storage
+      resetStore: () =>
+        set({
+          userData: emptyUserData,
+          aiConfig: null,
+          hasCompletedOnboarding: false,
+          cursorSettings: { shape: "circle", colorOverride: "" },
+        }),
+    }),
+    {
+      name: "portfolio-builder-storage", // The key used in localStorage
+      storage: createJSONStorage(() => localStorage),
+      // We don't want to save the 'isGenerating' loading state if they refresh
+      partialize: (state) => ({
+        userData: state.userData,
+        aiConfig: state.aiConfig,
+        hasCompletedOnboarding: state.hasCompletedOnboarding,
+        cursorSettings: state.cursorSettings,
+      }),
+    },
+  ),
+);

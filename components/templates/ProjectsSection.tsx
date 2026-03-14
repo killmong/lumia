@@ -5,7 +5,8 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { usePortfolioStore } from "@/store/usePortfolioStore";
-
+import { Play } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
@@ -68,6 +69,41 @@ export default function ProjectsSection() {
               key={index}
               className="project-card w-[80vw] md:w-[45vw] h-[55vh] shrink-0 group"
             >
+              {template === "creator" && (
+                <div className="h-full w-full bg-[#0a0a0a] rounded-2xl overflow-hidden border border-white/10 group shadow-2xl transition-all hover:border-red-600/50">
+                  <div className="relative aspect-video bg-gray-900">
+                    {/* The "Thumbnail" image would go here */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-60" />
+
+                    {/* Badge: Video Duration */}
+                    <span className="absolute bottom-2 right-2 bg-black/90 text-white text-[10px] font-bold px-2 py-1 rounded">
+                      12:45
+                    </span>
+
+                    {/* Play Hover Effect */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-[2px]">
+                      <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(220,38,38,0.5)]">
+                        <Play
+                          size={20}
+                          fill="white"
+                          className="text-white ml-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-5">
+                    <h3 className="text-white font-bold text-lg leading-tight line-clamp-2 group-hover:text-red-500 transition-colors">
+                      {project.title}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-3 text-gray-500 text-xs font-medium">
+                      <span>1.2K views</span>
+                      <span>•</span>
+                      <span>2 days ago</span>
+                    </div>
+                  </div>
+                </div>
+              )}
               {/* =========================================
                   DEVELOPER THEME
                   ========================================= */}
@@ -208,6 +244,12 @@ export default function ProjectsSection() {
               )}
             </div>
           ))}
+        </div>
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 animate-bounce opacity-50">
+          <span className="text-white text-xs uppercase tracking-widest font-bold">
+            Scroll to Explore
+          </span>
+          <ChevronRight className="text-white" size={16} />
         </div>
       </div>
     </section>

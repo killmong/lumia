@@ -2,20 +2,40 @@
 
 import { useState } from "react";
 import { usePortfolioStore } from "@/store/usePortfolioStore";
-import { Sparkles, Edit3, X, Plus, FolderGit2, User, Mail } from "lucide-react";
+import {
+  Sparkles,
+  Edit3,
+  X,
+  Plus,
+  FolderGit2,
+  User,
+  Mail,
+  Settings,
+  MousePointer2,
+  Trash2,
+} from "lucide-react";
 
 export default function ControlPanel() {
-  const { userData, setUserData, isGenerating, setIsGenerating, setAiConfig } =
-    usePortfolioStore();
+  const {
+    userData,
+    setUserData,
+    isGenerating,
+    setIsGenerating,
+    setAiConfig,
+    cursorSettings,
+    setCursorSettings,
+    resetStore,
+  } = usePortfolioStore();
 
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // NEW: State to track which tab is currently active
   const [activeTab, setActiveTab] = useState<"projects" | "about" | "contact">(
     "projects",
   );
 
   const handleGenerateAI = async () => {
     setIsGenerating(true);
+
     try {
       const response = await fetch("/api/generate", {
         method: "POST",
@@ -50,75 +70,152 @@ export default function ControlPanel() {
 
   return (
     <>
-      {/* =========================================
-          THE SIDEBAR (Quick Edits)
-          ========================================= */}
-      <aside className="fixed top-0 right-0 h-full w-80 bg-white/10 backdrop-blur-lg border-l border-white/20 p-6 shadow-2xl z-50 flex flex-col gap-6 text-white overflow-y-auto custom-scrollbar">
-        <div>
-          <h3 className="text-xl font-bold mb-1">Portfolio Data</h3>
-          <p className="text-xs text-gray-400 mb-4">Quick overview.</p>
+      {/* 🔘 FLOATING TOGGLE BUTTON */}
+      <button
+        onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+        className="fixed top-6 right-6 z-[60] bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-full shadow-2xl hover:scale-110 transition-all text-white group"
+        aria-label={
+          isSidebarVisible ? "Close control panel" : "Open control panel"
+        }
+      >
+        {isSidebarVisible ? (
+          <X size={24} />
+        ) : (
+          <Settings
+            size={24}
+            className="group-hover:rotate-90 transition-transform duration-500"
+          />
+        )}
+      </button>
+
+      {/* ⚡ THE SIDEBAR (Now sliding) */}
+      <aside
+        className={`fixed top-0 right-0 h-full w-80 bg-[#0f172a]/90 backdrop-blur-2xl border-l border-white/10 p-6 shadow-2xl z-50 flex flex-col gap-6 text-white transform transition-transform duration-500 ease-in-out overflow-y-auto custom-scrollbar ${
+          isSidebarVisible ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {/* Sidebar Header */}
+        <div className="mt-12">
+          <h3 className="text-xl font-bold mb-1">AI Designer</h3>
+          <p className="text-xs text-gray-400 mb-4">Live Portfolio Editor</p>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-300">Name</label>
-          <input
-            type="text"
-            value={userData.name}
-            onChange={(e) => setUserData({ name: e.target.value })}
-            className="bg-black/40 border border-white/10 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors"
-          />
+        {/* Quick Identity Inputs */}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-gray-400">Name</label>
+            <input
+              type="text"
+              value={userData.name}
+              onChange={(e) => setUserData({ name: e.target.value })}
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-gray-400">Role</label>
+            <input
+              type="text"
+              value={userData.role}
+              onChange={(e) => setUserData({ role: e.target.value })}
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-300">Role</label>
-          <input
-            type="text"
-            value={userData.role}
-            onChange={(e) => setUserData({ role: e.target.value })}
-            className="bg-black/40 border border-white/10 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors"
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-300">Short Bio</label>
-          <textarea
-            value={userData.bio}
-            onChange={(e) => setUserData({ bio: e.target.value })}
-            rows={4}
-            className="bg-black/40 border border-white/10 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500 resize-none custom-scrollbar"
-          />
-        </div>
+        {/* Deep Editor Button */}
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center justify-between w-full bg-blue-600/10 border border-blue-500/30 hover:bg-blue-600/20 rounded-xl px-4 py-4 text-sm transition-all text-blue-400 font-bold mt-2"
+        >
+          Edit Deep Content <Edit3 size={16} />
+        </button>
 
         <hr className="border-white/10 my-2" />
 
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-300 mb-1">
-            Deep Content & Integrations
+        {/* 🖱️ UI Settings: Custom Cursor */}
+        <div className="flex flex-col gap-3">
+          <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+            <MousePointer2 size={16} /> Cursor Style
           </label>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-between w-full bg-blue-600/20 border border-blue-500/50 hover:bg-blue-600/40 rounded-md px-4 py-3 text-sm transition-colors text-blue-200"
-          >
-            <span className="font-semibold">Open Editor</span>
-            <Edit3 size={16} />
-          </button>
+
+          <div className="flex gap-2">
+            {["circle", "ring", "square"].map((shape) => (
+              <button
+                key={shape}
+                onClick={() => setCursorSettings({ shape: shape as any })}
+                className={`flex-1 py-2 text-xs capitalize font-bold rounded-lg border transition-all ${
+                  cursorSettings.shape === shape
+                    ? "bg-blue-600 border-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                    : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {shape}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between mt-1 bg-black/20 p-2 rounded-lg border border-white/5">
+            <span className="text-xs text-gray-400">Override Theme Color</span>
+            <div className="flex items-center gap-3">
+              {cursorSettings.colorOverride && (
+                <button
+                  onClick={() => setCursorSettings({ colorOverride: "" })}
+                  className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+              <input
+                type="color"
+                value={cursorSettings.colorOverride || "#ffffff"}
+                onChange={(e) =>
+                  setCursorSettings({ colorOverride: e.target.value })
+                }
+                className="w-6 h-6 rounded cursor-pointer bg-transparent border-0 p-0"
+              />
+            </div>
+          </div>
         </div>
 
-        <button
-          onClick={handleGenerateAI}
-          disabled={isGenerating}
-          className="mt-auto flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white py-3 rounded-md font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Sparkles size={18} className={isGenerating ? "animate-spin" : ""} />
-          {isGenerating ? "Analyzing..." : "Generate AI Theme"}
-        </button>
+        {/* Bottom Actions Area */}
+        <div className="mt-auto flex flex-col gap-3 pt-6">
+          <button
+            onClick={handleGenerateAI}
+            disabled={isGenerating}
+            className="flex items-center justify-center gap-2 bg-linear-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white py-4 rounded-xl font-bold transition-all disabled:opacity-50"
+          >
+            <Sparkles
+              size={18}
+              className={isGenerating ? "animate-spin" : ""}
+            />
+            {isGenerating ? "Analyzing..." : "Regenerate AI Theme"}
+          </button>
+
+          {/* 🚨 DANGER ZONE */}
+          <button
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Are you sure you want to reset all data? This will clear your Local Storage and reset the builder to its default state.",
+                )
+              ) {
+                resetStore();
+                window.location.reload(); // Force a hard refresh to wipe everything clean
+              }
+            }}
+            className="flex items-center justify-center gap-2 bg-red-900/20 hover:bg-red-900/40 border border-red-500/30 text-red-400 py-3 rounded-xl text-sm font-bold transition-all"
+          >
+            <Trash2 size={16} /> Factory Reset
+          </button>
+        </div>
       </aside>
 
       {/* =========================================
           THE MEGA MODAL (Deep Content)
           ========================================= */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:p-10">
+        <div className="fixed inset-0 z-100 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:p-10">
           <div className="bg-[#0f172a] border border-white/20 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-white">
             {/* Modal Header & Tabs */}
             <div className="bg-black/40 border-b border-white/10 flex flex-col">
@@ -136,21 +233,33 @@ export default function ControlPanel() {
               <div className="flex px-6 gap-6">
                 <button
                   onClick={() => setActiveTab("projects")}
-                  className={`py-3 flex items-center gap-2 border-b-2 transition-colors ${activeTab === "projects" ? "border-blue-500 text-blue-400" : "border-transparent text-gray-400 hover:text-gray-200"}`}
+                  className={`py-3 flex items-center gap-2 border-b-2 transition-colors ${
+                    activeTab === "projects"
+                      ? "border-blue-500 text-blue-400"
+                      : "border-transparent text-gray-400 hover:text-gray-200"
+                  }`}
                 >
                   <FolderGit2 size={16} /> Projects
                 </button>
                 <button
                   onClick={() => setActiveTab("about")}
-                  className={`py-3 flex items-center gap-2 border-b-2 transition-colors ${activeTab === "about" ? "border-blue-500 text-blue-400" : "border-transparent text-gray-400 hover:text-gray-200"}`}
+                  className={`py-3 flex items-center gap-2 border-b-2 transition-colors ${
+                    activeTab === "about"
+                      ? "border-blue-500 text-blue-400"
+                      : "border-transparent text-gray-400 hover:text-gray-200"
+                  }`}
                 >
                   <User size={16} /> About & Integrations
                 </button>
                 <button
                   onClick={() => setActiveTab("contact")}
-                  className={`py-3 flex items-center gap-2 border-b-2 transition-colors ${activeTab === "contact" ? "border-blue-500 text-blue-400" : "border-transparent text-gray-400 hover:text-gray-200"}`}
+                  className={`py-3 flex items-center gap-2 border-b-2 transition-colors ${
+                    activeTab === "contact"
+                      ? "border-blue-500 text-blue-400"
+                      : "border-transparent text-gray-400 hover:text-gray-200"
+                  }`}
                 >
-                  <Mail size={16} /> Let's Connect
+                  <Mail size={16} /> Let&apos;s Connect
                 </button>
               </div>
             </div>
@@ -296,6 +405,26 @@ export default function ControlPanel() {
                     </div>
                   </div>
 
+                  <div className="bg-white/5 p-6 rounded-xl border border-white/10 flex flex-col gap-4">
+                    <h3 className="text-lg font-bold text-white border-b border-white/10 pb-2">
+                      Resume Upload
+                    </h3>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs text-gray-400 uppercase tracking-wider">
+                        Resume URL
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Link to PDF"
+                        value={userData.resumeUrl}
+                        onChange={(e) =>
+                          setUserData({ resumeUrl: e.target.value })
+                        }
+                        className="bg-black/40 border border-white/10 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+
                   <div className="bg-blue-900/10 p-6 rounded-xl border border-blue-500/30 flex flex-col gap-4">
                     <h3 className="text-lg font-bold text-blue-400 border-b border-blue-500/20 pb-2">
                       API Integrations
@@ -321,7 +450,7 @@ export default function ControlPanel() {
                             })
                           }
                           className="bg-black/40 border border-white/10 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                          placeholder="e.g., killmong"
+                          placeholder="e.g. killmong"
                         />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -340,7 +469,7 @@ export default function ControlPanel() {
                             })
                           }
                           className="bg-black/40 border border-white/10 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                          placeholder="e.g., GOuravSharmaVLogD"
+                          placeholder="e.g. GOuravSharmaVLogD or UC..."
                         />
                       </div>
                     </div>
@@ -353,7 +482,7 @@ export default function ControlPanel() {
                 <div className="flex flex-col gap-8">
                   <div className="bg-white/5 p-6 rounded-xl border border-white/10 flex flex-col gap-4">
                     <h3 className="text-lg font-bold text-white border-b border-white/10 pb-2">
-                      Let's Connect Info
+                      Let&apos;s Connect Info
                     </h3>
                     <div className="flex flex-col gap-1">
                       <label className="text-xs text-gray-400 uppercase tracking-wider">

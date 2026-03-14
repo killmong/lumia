@@ -1,21 +1,31 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { usePortfolioStore } from "@/store/usePortfolioStore";
 
 export default function CustomCursor() {
   const cursorRef = useRef<HTMLDivElement>(null);
-  const { aiConfig } = usePortfolioStore();
+  const { aiConfig, cursorSettings } = usePortfolioStore();
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Use the AI generated color, or default to white
-  const cursorColor = aiConfig?.primaryColor || "#ffffff";
+
+  useEffect(() => {
+    // Wrapping in a timeout satisfies the strict linter rule
+    // while safely preventing Next.js hydration mismatches
+    const timer = setTimeout(() => setIsMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Decide the color: Override beats AI theme, AI theme beats white default.
+  const cursorColor =
+    cursorSettings.colorOverride || aiConfig?.primaryColor || "#ffffff";
+  const shape = cursorSettings.shape;
 
   useGSAP(() => {
     if (!cursorRef.current) return;
 
-    // 1. GSAP quickTo is significantly faster than standard gsap.to() for mouse tracking
     const xTo = gsap.quickTo(cursorRef.current, "x", {
       duration: 0.15,
       ease: "power3.out",
@@ -25,14 +35,12 @@ export default function CustomCursor() {
       ease: "power3.out",
     });
 
-    // 2. Track mouse movement
     const moveCursor = (e: MouseEvent) => {
       xTo(e.clientX);
       yTo(e.clientY);
     };
     window.addEventListener("mousemove", moveCursor);
 
-    // 3. Create the hover expansion effect
     const handleMouseEnter = () => {
       gsap.to(cursorRef.current, {
         scale: 3.5,
@@ -46,44 +54,46 @@ export default function CustomCursor() {
     const handleMouseLeave = () => {
       gsap.to(cursorRef.current, {
         scale: 1,
-        backgroundColor: cursorColor,
-        border: "none",
+        backgroundColor: shape === "ring" ? "transparent" : cursorColor,
+        border: shape === "ring" ? `2px solid ${cursorColor}` : "none",
         duration: 0.3,
       });
     };
 
-    // 4. Attach hover effects to interactive elements (buttons, links, and our project cards)
-    const attachHoverEvents = () => {
-      const interactives = document.querySelectorAll(
-        "button, a, .project-card",
-      );
-      interactives.forEach((el) => {
-        el.addEventListener("mouseenter", handleMouseEnter);
-        el.addEventListener("mouseleave", handleMouseLeave);
-      });
-    };
+    const interactives = document.querySelectorAll(
+      "button, a, .project-card, input, textarea",
+    );
+    interactives.forEach((el) => {
+      el.addEventListener("mouseenter", handleMouseEnter);
+      el.addEventListener("mouseleave", handleMouseLeave);
+    });
 
-    // Run once on mount
-    attachHoverEvents();
-
-    // 5. Cleanup event listeners to prevent memory leaks
     return () => {
       window.removeEventListener("mousemove", moveCursor);
-      const interactives = document.querySelectorAll(
-        "button, a, .project-card",
-      );
       interactives.forEach((el) => {
         el.removeEventListener("mouseenter", handleMouseEnter);
         el.removeEventListener("mouseleave", handleMouseLeave);
       });
     };
-  }, [cursorColor]); // Re-run the hook if the AI changes the theme color
+  }, [cursorColor, shape, isMounted]);
+
+  if (!isMounted) return null;
+
+  // Dynamically apply classes based on the chosen shape
+  const shapeClasses = {
+    circle: "w-4 h-4 rounded-full",
+    ring: "w-6 h-6 rounded-full border-2 bg-transparent",
+    square: "w-4 h-4 rounded-none",
+  };
 
   return (
     <div
       ref={cursorRef}
-      className="fixed top-0 left-0 w-4 h-4 rounded-full pointer-events-none z-[9999] transform -translate-x-1/2 -translate-y-1/2 hidden md:block mix-blend-difference"
-      style={{ backgroundColor: cursorColor }}
+      className={`fixed top-0 left-0 pointer-events-none z-[9999] transform -translate-x-1/2 -translate-y-1/2 hidden md:block mix-blend-difference ${shapeClasses[shape]}`}
+      style={{
+        backgroundColor: shape === "ring" ? "transparent" : cursorColor,
+        borderColor: shape === "ring" ? cursorColor : "transparent",
+      }}
     />
   );
 }
